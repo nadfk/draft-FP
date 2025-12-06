@@ -10,30 +10,29 @@ import { shuffleWord } from './utils/shuffle.util';
 
 export class UnjumbleService {
   async getPuzzle(): Promise<UnjumblePuzzle> {
-    const data = await prisma.wordList.findFirst({
-      where: { gameSlug: 'unjumble' },
+    const data = await prisma.unjumble.findFirst({
       orderBy: { createdAt: 'asc' },
     });
 
     if (!data) throw new Error('Puzzle not found');
 
     return {
-      id: data.id,
-      jumbled: shuffleWord(data.word),
-      difficulty: data.difficulty,
+      id: Number(data.id),
+      jumbled: shuffleWord(data.question),
+      difficulty: 'normal', // karena schema tidak punya difficulty
     };
   }
 
   async checkAnswer(
     body: UnjumbleCheckAnswerRequest,
   ): Promise<UnjumbleCheckAnswerResponse> {
-    const real = await prisma.wordList.findUnique({
-      where: { id: body.questionId },
+    const real = await prisma.unjumble.findUnique({
+      where: { id: String(body.questionId) },
     });
 
     if (!real) throw new Error('Question not found');
 
-    const correct = real.word.toLowerCase() === body.answer.toLowerCase();
+    const correct = real.answer.toLowerCase() === body.answer.toLowerCase();
 
     return {
       status: true,
@@ -44,9 +43,15 @@ export class UnjumbleService {
   }
 
   async addPlayCount(): Promise<void> {
-    await prisma.game.update({
+    const template = await prisma.gameTemplates.findUnique({
       where: { slug: 'unjumble' },
-      data: { playCount: { increment: 1 } },
+    });
+
+    if (!template) throw new Error('Template not found');
+
+    await prisma.games.updateMany({
+      where: { id: template.id },
+      data: { total_played: { increment: 1 } }
     });
   }
 }
