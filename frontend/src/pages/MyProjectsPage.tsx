@@ -32,7 +32,13 @@ type Project = {
   description: string;
   thumbnail_image: string | null;
   is_published: boolean;
-  game_template: number;
+  game_template?: {
+    slug: string;
+    name: string;
+  };
+  total_liked?: number;
+  total_played?: number;
+  _count?: { liked: number };
 };
 
 export default function MyProjectsPage() {
@@ -45,11 +51,28 @@ export default function MyProjectsPage() {
     const fetchProjects = async () => {
       try {
         setLoading(true);
-        const response = await api.get("/api/auth/me/game");
-        setProjects(response.data.data);
+        const response = await api.get("/api/auth/me/game", {
+          params: {
+            page: 1,
+            perPage: 10,
+            orderByName: "asc",
+            orderByCreatedAt: "desc",
+            orderByLikeAmount: "desc",
+            orderByPlayAmount: "desc",
+          },
+        });
+        console.log("My Projects Response:", response.data);
+
+        const projectsData = response.data.data || [];
+        if (!Array.isArray(projectsData)) {
+          console.error("Projects data is not an array:", projectsData);
+          setProjects([]);
+        } else {
+          setProjects(projectsData);
+        }
       } catch (err) {
+        console.error("Error fetching projects:", err);
         setError("Failed to fetch projects. Please try again later.");
-        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -57,9 +80,13 @@ export default function MyProjectsPage() {
     fetchProjects();
   }, []);
 
-  const handleDeleteProject = async (projectId: string) => {
+  const getGameTypeSlug = (project: Project): string => {
+    return project.game_template?.slug || "quiz";
+  };
+
+  const handleDeleteProject = async (projectId: string, gameType: string) => {
     try {
-      await api.delete(`/api/game/game-type/quiz/${projectId}`);
+      await api.delete(`/api/game/game-type/${gameType}/${projectId}`);
       setProjects((prev) => prev.filter((p) => p.id !== projectId));
       toast.success("Project deleted successfully!");
     } catch (err) {
@@ -68,12 +95,11 @@ export default function MyProjectsPage() {
     }
   };
 
-  const handleUpdateStatus = async (gameId: string, isPublish: boolean) => {
+  const handleUpdateStatus = async (gameId: string, isPublish: boolean, gameType: string) => {
     try {
-      const form = new FormData();
-      form.append("is_publish", String(isPublish));
-
-      await api.patch(`/api/game/game-type/quiz/${gameId}`, form);
+      await api.patch(`/api/game/game-type/${gameType}/${gameId}`, {
+        is_publish: isPublish,
+      });
 
       setProjects((prev) =>
         prev.map((p) =>
@@ -185,7 +211,12 @@ export default function MyProjectsPage() {
                       size="sm"
                       className="h-7"
                       onClick={() => {
-                        navigate(`/quiz/play/${project.id}`);
+                        const gameType = getGameTypeSlug(project);
+                        if (gameType === "unjumble") {
+                          navigate(`/unjumble/play/${project.id}`);
+                        } else {
+                          navigate(`/quiz/play/${project.id}`);
+                        }
                       }}
                     >
                       <Play />
@@ -197,7 +228,12 @@ export default function MyProjectsPage() {
                     size="sm"
                     className="h-7"
                     onClick={() => {
-                      navigate(`/quiz/edit/${project.id}`);
+                      const gameType = getGameTypeSlug(project);
+                      if (gameType === "unjumble") {
+                        navigate(`/unjumble/edit/${project.id}`);
+                      } else {
+                        navigate(`/quiz/edit/${project.id}`);
+                      }
                     }}
                   >
                     <Edit />
@@ -209,7 +245,8 @@ export default function MyProjectsPage() {
                       size="sm"
                       className="h-7"
                       onClick={() => {
-                        handleUpdateStatus(project.id, false);
+                        const gameType = getGameTypeSlug(project);
+                        handleUpdateStatus(project.id, false, gameType);
                       }}
                     >
                       <EyeOff />
@@ -221,7 +258,8 @@ export default function MyProjectsPage() {
                       size="sm"
                       className="h-7"
                       onClick={() => {
-                        handleUpdateStatus(project.id, true);
+                        const gameType = getGameTypeSlug(project);
+                        handleUpdateStatus(project.id, true, gameType);
                       }}
                     >
                       <Eye />
@@ -255,7 +293,8 @@ export default function MyProjectsPage() {
                         <AlertDialogAction
                           className="bg-red-600 hover:bg-red-700"
                           onClick={() => {
-                            handleDeleteProject(project.id);
+                            const gameType = getGameTypeSlug(project);
+                            handleDeleteProject(project.id, gameType);
                           }}
                         >
                           Yes, Delete

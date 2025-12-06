@@ -139,7 +139,7 @@ function CreateQuiz() {
     try {
       await createQuiz(parseResult.data);
       toast.success("Quiz created successfully!");
-      navigate("/create-projects");
+      navigate("/my-projects");
     } catch (err) {
       console.error("Failed to create quiz:", err);
       toast.error("Failed to create quiz. Please try again.");

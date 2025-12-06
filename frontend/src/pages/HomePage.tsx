@@ -38,7 +38,10 @@ type Game = {
   name: string;
   description: string;
   thumbnail_image: string | null;
-  game_template: string;
+  game_template: {
+    name: string;
+    slug: string;
+  };
   total_liked: number;
   total_played: number;
   creator_id: string;
@@ -101,8 +104,17 @@ export default function HomePage() {
         const queryString = params.toString();
         const url = queryString ? `/api/game?${queryString}` : "/api/game";
 
+        console.log("[HomePage] Fetching from URL:", url);
+        console.log("[HomePage] Axios baseURL:", api.defaults.baseURL);
+
         const response = await api.get(url);
         console.log("Fetched games data:", response.data);
+
+        if (!response.data.data || !Array.isArray(response.data.data)) {
+          console.error("Invalid response structure:", response.data);
+          setError("Invalid server response format");
+          return;
+        }
 
         setGames(
           response.data.data.map(
@@ -185,7 +197,12 @@ export default function HomePage() {
 
   const GameCard = ({ game }: { game: Game }) => {
     const handlePlayGame = () => {
-      window.location.href = `/quiz/play/${game.id}`;
+      // Route based on game type
+      if (game.game_template.slug === "unjumble") {
+        window.location.href = `/unjumble/play/${game.id}`;
+      } else {
+        window.location.href = `/quiz/play/${game.id}`;
+      }
     };
 
     return (
@@ -214,7 +231,7 @@ export default function HomePage() {
               {game.name}
             </Typography>
             <Badge variant="secondary" className="shrink-0">
-              {game.game_template}
+              {game.game_template.name}
             </Badge>
           </div>
 

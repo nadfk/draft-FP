@@ -46,7 +46,8 @@ export default function CreateProject() {
       try {
         setLoading(true);
         const response = await api.get("/api/game/template");
-        setTemplates(response.data.data);
+        // Use templates returned by backend directly to preserve original card layout
+        setTemplates(response.data?.data || []);
       } catch (err) {
         setError("Failed to fetch game templates. Please try again later.");
         console.error("Failed to fetch templates:", err);
@@ -61,6 +62,8 @@ export default function CreateProject() {
   const handleTemplateClick = (template: GameTemplate) => {
     if (template.slug === "quiz") {
       navigate("/create-quiz");
+    } else if (template.slug === "unjumble") {
+      navigate("/create-unjumble");
     } else {
       toast.error(`${template.name} template is coming soon!`, {
         duration: 3000,

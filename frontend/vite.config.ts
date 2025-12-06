@@ -14,6 +14,15 @@ export default defineConfig({
     host: true,
     port: 3000,
     allowedHosts: ["dev-wordit.it-its.id", "wordit.it-its.id"],
+    proxy: {
+      // Proxy API requests to backend during development
+      '/api': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, '/api'),
+      },
+    },
   },
   preview: {
     host: true,
