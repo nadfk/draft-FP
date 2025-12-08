@@ -1,9 +1,10 @@
 import { CheckAnswerSchema } from '@/api/game/game-list/quiz/schema';
 
 export interface UnjumblePuzzle {
-  id: number;
+  id: string;
   jumbled: string;
-  difficulty: string;
+  difficulty?: string;
+  question?: string;
 }
 
 export interface UnjumbleCheckAnswerRequest {
